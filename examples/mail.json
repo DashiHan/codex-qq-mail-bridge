@@ -1,0 +1,8 @@
+{
+  "to": "recipient@example.org",
+  "subject": "Inline image and attachment test",
+  "body": "This is a test email with an inline image and a text attachment.",
+  "html": "<p>This is a test.</p><img src=\"cid:sample-image\" alt=\"Test image\">",
+  "inline_images": [{"path": "./sample.png", "cid": "sample-image"}],
+  "attachments": ["./sample.txt"]
+}

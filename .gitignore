@@ -1,0 +1,20 @@
+# Local mail state and personal material
+**/config*.json
+**/*.sqlite*
+**/*.db
+**/*.db-*
+**/previews/
+**/*.eml
+**/投递记录*.csv
+**/records*.csv
+**/.env*
+**/*.pem
+**/*.key
+**/*.pfx
+**/*.pdf
+**/resumes/
+**/private/
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+*.zip
