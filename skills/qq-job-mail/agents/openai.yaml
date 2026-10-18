@@ -1,6 +1,6 @@
 interface:
   display_name: "QQ Mail Bridge"
-  short_description: "Prepare and send QQ/Foxmail emails with review and shared history"
+  short_description: "Read, search, draft replies and send QQ/Foxmail with shared history"
   default_prompt: "Use $qq-job-mail to prepare an email and show its contents before sending."
 policy:
   allow_implicit_invocation: true

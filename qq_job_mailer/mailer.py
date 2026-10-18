@@ -136,6 +136,14 @@ def make_mail_draft(c, spec, base):
     if not isinstance(subject, str) or not subject.strip() or not isinstance(body, str):
         raise ValueError('邮件需要主题和文字正文。')
     msg = message(c, recipient, subject, body)
+    for key, header in (('in_reply_to', 'In-Reply-To'), ('references', 'References')):
+        value = spec.get(key, '')
+        if value:
+            if not isinstance(value, str) or not re.fullmatch(r'<[^<>\s\r\n]{1,500}>(?: <[^<>\s\r\n]{1,500}>)*', value):
+                raise ValueError('回复邮件的线程标识格式不正确。')
+            if key == 'in_reply_to' and ' ' in value:
+                raise ValueError('In-Reply-To只能指定一封原邮件。')
+            msg[header] = value
     html = spec.get('html')
     if html:
         msg.add_alternative(html, subtype='html', charset='utf-8', cte='base64')
@@ -170,6 +178,8 @@ def make_mail_draft(c, spec, base):
         msg.add_attachment(content, maintype=maintype, subtype=subtype, filename=path.name)
     identity = dict(account=c['account'], sender=sender_address(c), to=recipient,
                     subject=subject, body=body, html=html, assets=assets)
+    if spec.get('in_reply_to') or spec.get('references'):
+        identity.update(in_reply_to=spec.get('in_reply_to', ''), references=spec.get('references', ''))
     appkey = digest(json.dumps(identity, ensure_ascii=False, sort_keys=True).encode('utf-8'))
     return dict(id=secrets.token_hex(6), account=c['account'], unit='普通邮件', role=subject,
                 recipient=recipient, resume='', attachment_hash='', assets=assets,
@@ -218,6 +228,7 @@ def show(d):
             print('HTML正文：', msg.get_body(preferencelist=('html',)).get_content())
         for asset in d.get('assets', []):
             print('正文图片：' if asset['inline'] else '普通附件：', asset['path'], '\n大小：', asset['size'], '字节；SHA256：', asset['hash'])
+    if msg.get('In-Reply-To'): print('回复原邮件：', msg['In-Reply-To'])
     print('Message-ID：', msg['Message-ID'])
 
 
@@ -377,6 +388,24 @@ def main():
     sub = p.add_subparsers(dest='cmd', required=True)
     for cmd in ('setup','test','confirm-test','doctor','records','forget'):
         sub.add_parser(cmd)
+    for name in ('inbox', 'search'):
+        q = sub.add_parser(name)
+        q.add_argument('--limit', type=int, default=20)
+        q.add_argument('--unread', action='store_true')
+        q.add_argument('--from', dest='sender')
+        q.add_argument('--subject')
+        q.add_argument('--since')
+        q.add_argument('--before')
+    for name in ('read', 'attachments', 'download', 'reply'):
+        q = sub.add_parser(name)
+        q.add_argument('reference')
+        if name == 'read': q.add_argument('--max-chars', type=int, default=12000)
+        if name == 'download':
+            q.add_argument('index', type=int)
+            q.add_argument('--output', type=Path, required=True)
+        if name == 'reply':
+            q.add_argument('--body-file', type=Path, required=True)
+            q.add_argument('--subject')
     compose = sub.add_parser('prepare-mail'); compose.add_argument('spec', type=Path)
     prep = sub.add_parser('prepare'); prep.add_argument('table', type=Path)
     for cmd in ('preview','send'):
@@ -393,6 +422,24 @@ def main():
         with smtplib.SMTP_SSL('smtp.qq.com', 465, timeout=10, context=ssl.create_default_context()) as smtp:
             code, _ = smtp.noop()
             print('SMTP SSL证书验证与连接:', code, '（未登录、未发信）')
+        return
+    if args.cmd in ('inbox', 'search', 'read', 'attachments', 'download', 'reply'):
+        from inbox import Mailbox, reply_spec
+        c = config()
+        with Mailbox(c) as box:
+            if args.cmd in ('inbox', 'search'):
+                result = box.list_messages(args.limit, args.unread, args.sender, args.subject, args.since, args.before)
+            elif args.cmd == 'read': result = box.read_message(args.reference, args.max_chars)
+            elif args.cmd == 'attachments': result = box.attachments(args.reference)
+            elif args.cmd == 'download': result = box.download(args.reference, args.index, args.output)
+            else:
+                spec = reply_spec(box._message(args.reference), args.body_file.read_text(encoding='utf-8-sig'), args.subject)
+                d = make_mail_draft(c, spec, args.body_file.resolve().parent)
+                with database(ROOT / 'delivery.sqlite3') as db: save_draft(db, d)
+                show(d)
+                print('仅生成回复草稿，未发送。发送命令：run.ps1 send ' + d['id'])
+                return
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return
     with database(ROOT / 'delivery.sqlite3') as db:
         if args.cmd == 'setup':

@@ -12,7 +12,7 @@ errors = []
 for relative in paths:
     path = root / relative
     name = path.name.lower()
-    if (name.startswith('config') and name.endswith('.json')) or any(x in relative.parts for x in ('previews', '__pycache__', '.venv', 'private')) or path.suffix.lower() in ('.eml', '.zip', '.sqlite3', '.db', '.pdf', '.pfx', '.key'):
+    if (name.startswith('config') and name.endswith('.json')) or any(x in relative.parts for x in ('previews', '__pycache__', '.venv', 'private', 'downloads', 'inbox-cache', 'replies')) or path.suffix.lower() in ('.eml', '.zip', '.sqlite3', '.db', '.pdf', '.pfx', '.key'):
         errors.append(str(relative) + ': runtime/private artifact')
     text = path.read_text(encoding='utf-8-sig')
     if re.search(r'[A-Za-z]:[\\/]Users[\\/][^\s]+', text, re.I):

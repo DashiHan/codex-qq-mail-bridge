@@ -18,3 +18,7 @@
 **/*.py[cod]
 **/.venv/
 *.zip
+
+**/downloads/
+**/inbox-cache/
+**/replies/

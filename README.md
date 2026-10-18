@@ -6,6 +6,22 @@
 
 Send mail directly through QQ SMTP over verified TLS, with frozen drafts, per-message review, inline images, attachments and shared delivery history. Browser automation is not required. This is a community project, not an official Tencent or OpenAI integration.
 
+## Read your inbox
+
+Read-only IMAP uses the existing Windows credential. Enable IMAP in QQ Mail if needed. No mailbox flags are changed.
+
+```powershell
+.\qq_job_mailer\run.ps1 inbox --limit 20
+.\qq_job_mailer\run.ps1 inbox --unread
+.\qq_job_mailer\run.ps1 search --subject "interview" --since 2026-01-01
+.\qq_job_mailer\run.ps1 read MAIL_REFERENCE
+.\qq_job_mailer\run.ps1 attachments MAIL_REFERENCE
+.\qq_job_mailer\run.ps1 download MAIL_REFERENCE 1 --output .\private\downloads
+.\qq_job_mailer\run.ps1 reply MAIL_REFERENCE --body-file .\private\reply.txt
+```
+
+Use the exact mailbox-version:UID reference from inbox/search, not its row number. Keyword searches scan at most500 recent messages after date/unread filtering; results disclose incomplete scans. Messages up to25 MiB can be read. Downloaded files are never automatically opened. Reply only creates a local draft and still requires review and `send DRAFT_ID`. Email contents, downloads and replies must remain private.
+
 ## Features
 
 - QQ SMTP login with an authorization code held in Windows Credential Manager.
@@ -18,7 +34,7 @@ Send mail directly through QQ SMTP over verified TLS, with frozen drafts, per-me
 
 ## Requirements
 
-Windows, PowerShell, Python 3.10+, a QQ Mail account with SMTP enabled and an authorization code, and network access to `smtp.qq.com:465`. CSV/general email require only the Python standard library. XLSX optionally requires `openpyxl`.
+Windows, PowerShell, Python 3.10+, a QQ Mail account with SMTP and, for reading, IMAP enabled and an authorization code, and network access to `smtp.qq.com:465` and, for reading, `imap.qq.com:993`. CSV/general email require only the Python standard library. XLSX optionally requires `openpyxl`.
 
 ## Install
 

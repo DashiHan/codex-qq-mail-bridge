@@ -96,6 +96,31 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(d['appkey'], another['appkey'])
         self.assertFalse(m.claim(self.db, another, 0))
 
+    def test_reply_thread_headers_are_frozen_in_saved_draft(self):
+        spec = self.general_spec()
+        spec['in_reply_to'] = '<original@example.org>'
+        spec['references'] = '<earlier@example.org> <original@example.org>'
+        d = m.make_mail_draft(self.cfg, spec, self.root)
+        msg = m.parse(d['raw'])
+        self.assertEqual(msg['In-Reply-To'], spec['in_reply_to'])
+        self.assertEqual(msg['References'], spec['references'])
+        spec['in_reply_to'] = '<different@example.org>'
+        self.assertNotEqual(d['appkey'], m.make_mail_draft(self.cfg, spec, self.root)['appkey'])
+
+    def test_non_reply_keeps_legacy_duplicate_key(self):
+        spec = self.general_spec()
+        d = m.make_mail_draft(self.cfg, spec, self.root)
+        import json
+        legacy = dict(account=self.cfg['account'], sender=m.sender_address(self.cfg), to=spec['to'],
+                      subject=spec['subject'], body=spec['body'], html=spec['html'], assets=d['assets'])
+        expected = m.digest(json.dumps(legacy, ensure_ascii=False, sort_keys=True).encode('utf-8'))
+        self.assertEqual(d['appkey'], expected)
+
+    def test_reply_header_injection_rejected(self):
+        spec = self.general_spec()
+        spec['in_reply_to'] = '<a@example.org>\nBcc: x@example.org'
+        with self.assertRaises(ValueError): m.make_mail_draft(self.cfg, spec, self.root)
+
     def test_chinese_pdf_and_single_recipient(self):
         d = self.draft()
         msg = m.parse(d['raw'])
