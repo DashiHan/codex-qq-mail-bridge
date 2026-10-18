@@ -1,6 +1,6 @@
 ---
 name: qq-job-mail
-description: Use when reading, searching, replying to or sending QQ/Foxmail through a local Windows account, including unread mail, message bodies, attachment downloads, job applications and delivery history.
+description: Use when reading, searching, replying to, saving drafts for or sending QQ/Foxmail through a local Windows account, including unread mail, message bodies, attachment downloads, job applications and delivery history.
 ---
 
 # Codex QQ Mail Bridge
@@ -34,6 +34,12 @@ For job applications, prepare a UTF-8 CSV/XLSX with 单位,岗位,性质,邮箱 
 For general mail, write UTF-8 JSON with `to`, `subject`, `body`; optional `html`, `attachments` (file paths), `inline_images` (objects with `path` and unique `cid`). Reference images as `<img src="cid:CID">`. Run `run.ps1 prepare-mail ABSOLUTE_JSON_PATH`. Use absolute file paths across projects. Total source files must be at most 15 MiB. One recipient only; no CC/BCC. Never force general mail into a job template.
 
 Read the actual saved draft with `run.ps1 preview ID`. Show the sender, recipient, complete subject/body, HTML content when present, and all inline/attached file paths and hashes before sending. Source files are hash checked; regenerate and review if changed.
+
+## Save to QQ mailbox Drafts
+
+After preparing and reviewing a local draft, use `run.ps1 save-to-drafts DRAFT_ID`. This is a separate action from sending: it performs IMAP APPEND with the Draft flag into the existing QQ `Drafts` folder, and never invokes SMTP. Obtain explicit user authorization to save that specific content to the mailbox; a request to prepare local drafts alone does not authorize server upload. Display recipient, subject, full content and files, then enter `保存草稿 DRAFT_ID` only for that approved draft.
+
+The tool checks the saved sender and attachment hashes, records the operation in the shared SQLite database, and reads back the saved MIME to verify text and files. The same local draft cannot be saved again after acceptance, while in progress, or when the result is uncertain. A readback failure after accepted APPEND is saved/pending verification, not a reason to re-upload. Do not delete the database, regenerate identical drafts to bypass the guard, or automatically retry an uncertain save. Ask the user to inspect QQ Drafts first. Saving does not enable formal SMTP delivery and requires no SMTP self-test; sending still uses its existing separate approval gate. Existing server drafts are not overwritten or deleted. Mailbox drafts are private and never part of the public repository.
 
 ## Sending
 

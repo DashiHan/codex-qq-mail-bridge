@@ -99,3 +99,10 @@ Tests use temporary files and mocked transport/credentials; they do not send rea
 This repository intentionally excludes real configuration, credentials, resumes, screenshots, previews, delivery databases, exports, handoff archives and personal test messages. Credentials are tied to the local Windows user; other processes running as that user may access them. Do not upload local runtime files. Keep one active tool installation so duplicate protection remains centralized. Cloud conversations and other computers cannot automatically access a local skill or Windows credentials.
 
 MIT licensed. See [LICENSE](LICENSE).
+
+
+## Save to QQ mailbox Drafts
+
+After preparing and reviewing a local draft, use `run.ps1 save-to-drafts DRAFT_ID`. This is a separate action from sending: it performs IMAP APPEND with the Draft flag into the existing QQ `Drafts` folder, and never invokes SMTP. Obtain explicit user authorization to save that specific content to the mailbox; a request to prepare local drafts alone does not authorize server upload. Display recipient, subject, full content and files, then enter `保存草稿 DRAFT_ID` only for that approved draft.
+
+The tool checks the saved sender and attachment hashes, records the operation in the shared SQLite database, and reads back the saved MIME to verify text and files. The same local draft cannot be saved again after acceptance, while in progress, or when the result is uncertain. A readback failure after accepted APPEND is saved/pending verification, not a reason to re-upload. Do not delete the database, regenerate identical drafts to bypass the guard, or automatically retry an uncertain save. Ask the user to inspect QQ Drafts first. Saving does not enable formal SMTP delivery and requires no SMTP self-test; sending still uses its existing separate approval gate. Existing server drafts are not overwritten or deleted. Mailbox drafts are private and never part of the public repository.

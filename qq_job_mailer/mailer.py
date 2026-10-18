@@ -75,6 +75,9 @@ def database(path):
       unit TEXT, role TEXT, recipient TEXT, resume TEXT, date TEXT,
       status TEXT, kind TEXT, message_id TEXT, reason TEXT, epoch REAL);
     CREATE TABLE IF NOT EXISTS enabled(account TEXT PRIMARY KEY, confirmed TEXT);
+    CREATE TABLE IF NOT EXISTS remote_drafts(
+      account TEXT, draft_id TEXT, status TEXT, date TEXT, result TEXT,
+      PRIMARY KEY(account,draft_id));
     CREATE UNIQUE INDEX IF NOT EXISTS one_submission ON attempts(appkey)
       WHERE status IN ('发送中','结果不明','已提交发送');
     ''')
@@ -408,7 +411,7 @@ def main():
             q.add_argument('--subject')
     compose = sub.add_parser('prepare-mail'); compose.add_argument('spec', type=Path)
     prep = sub.add_parser('prepare'); prep.add_argument('table', type=Path)
-    for cmd in ('preview','send'):
+    for cmd in ('preview','send','save-to-drafts'):
         q = sub.add_parser(cmd); q.add_argument('id')
     resolve = sub.add_parser('resolve'); resolve.add_argument('record', type=int)
     args = p.parse_args()
@@ -501,7 +504,10 @@ def main():
         if not row:
             raise ValueError('草稿编号不存在。')
         d = json.loads(row[0])
-        if args.cmd == 'preview':
+        if args.cmd == 'save-to-drafts':
+            from draftbox import save_draft as save_remote_draft
+            save_remote_draft(db, c, d)
+        elif args.cmd == 'preview':
             show(d)
         else:
             review_send(db, c, d)
